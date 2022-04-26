@@ -43,7 +43,7 @@ const Comment = ({
             hasCancelButton
             initialText={comment.body}
             handlesubmit={(text) => updateComment(text, comment.id)}
-            handleCancel={() => setActiveComment(null)}
+            handleCancel={() => { setActiveComment(null)}}
            />
          )}
          <div className="comment-actions">
