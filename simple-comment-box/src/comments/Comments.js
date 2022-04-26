@@ -1,83 +1,105 @@
-import { useState, useEffect } from "react";
-import Comment from "./Comment";
 import CommentForm from "./CommentForm";
-import {
-    getComments as getCommentsApi,
-    createComment as createCommentApi,
-    updateComment as updateCommentApi,
-    deleteComment as deleteCommentApi,
-  } from "../api";
 
-const Comments = ({currentUserId}) => {
-    const [backendComments, setBackendComments] = useState([]);
-    const [activeComment, setActiveComment] = useState(null)
-    const rootComments = backendComments.filter(
-    (backendComment) => backendComment.parentId === null
+const Comment = ({
+  comment,
+  replies,
+  setActiveComment,
+  activeComment,
+  updateComment,
+  deleteComment,
+  addComment,
+  parentId = null,
+  currentUserId,
+}) => {
+  const fiveMinutes = 30000;
+  const timePassed = new Date() - new Date(comment.createdAt) > fiveMinutes;
+  const canReply = Boolean(currentUserId);
+  const canEdit = currentUserId === comment.userId && !timePassed;
+  const canDelete = currentUserId === comment.userId && !timePassed;
+  const createdAt = new Date(comment.createdAt).toLocaleDateString();
+  const isReplying =
+  activeComment &&
+  activeComment.type === "replying" &&
+  activeComment.id === comment.id;
+  const isEditing =
+  activeComment &&
+  activeComment.type === "editing" &&
+  activeComment.id === comment.id;
+  const replyId = parentId ? parentId : comment.id;
+    return (
+     <div className="comment">
+       <div className="comment-image-container">
+       <img src="/user-icon.png" />
+         </div>
+         <div className="comment-right-part">
+         <div className="comment-content">
+           <div className="comment-author">{comment.username}</div>
+           <div>{createdAt}</div>
+         </div>
+         {!isEditing && <div className="comment-text">{comment.body}</div>}
+         {isEditing && (
+           <CommentForm
+            submitLabel="Päivitä"
+            hasCancelButton
+            initialText={comment.body}
+            handlesubmit={(text) => updateComment(text, comment.id)}
+            handleCancel={() => setActiveComment(null)}
+           />
+         )}
+         <div className="comment-actions">
+           {canReply && (
+           <div
+            className="comment-action"
+             onClick={() =>
+              setActiveComment({id:comment.id, type: "replying"})
+            }>
+              Vastaa
+              </div>
+              )}
+           {canEdit && (
+             <div
+              className="comment-action"
+               onClick={() =>
+                setActiveComment({id:comment.id, type: "editing"})
+              }
+              >
+              Muokkaa
+              </div>)}
+           {canDelete && (
+              <div className="comment-action"
+              onClick={() => deleteComment(comment.id)}
+              >
+              Poista
+              </div>
+              )}
+         </div>
+         {isReplying && (
+           <CommentForm
+            submitLabel="Vastaa"
+             handleSubmit={(text) => addComment(text, replyId)}
+           />
+         )}
+         {replies.length > 0 && (
+           <div className="replies">
+             {replies.map((reply) => (
+               <Comment
+                comment={reply}
+                key={reply.id}
+                replies={[]}
+                currentUserId={currentUserId}
+                deleteComment={deleteComment}
+                updateComment={updateComment}
+                addComment={addComment}
+                activeComment={activeComment}
+                setActiveComment={setActiveComment}
+                parentId={comment.id} 
+                />
+         ))}
+         </div>
+         )}
+         </div>
+         </div>
     );
-
-const getReplies = commendId => {
-    return backendComments.filter(backendComment => backendComment.parentId === commendId).sort((a, b) =>
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-};
-const addComment = (text, parentId) => {
-    console.log("addComment", text, parentId);
-    createCommentApi(text, parentId).then(comment => {
-    setBackendComments([comment, ...backendComments]);
-    setActiveComment(null);    
-    });
-};
-const deleteComment = (commentId) => {
-    if (window.confirm("Haluatko varmasti poistaa kommentin?")) {
-        deleteCommentApi(commentId).then(() => {
-            const updatedBackendComments = backendComments.filter(
-                (backendComment) => backendComment.id !== commentId
-            );
-            setBackendComments(updatedBackendComments);
-        });
-    }
-};
-const updateComment = (text, commentId) => {
-    updateCommentApi(text, commentId).then(() => {
-    const updatedBackendComments = backendComments.map(backendComment => {
-        if (backendComment.id === commentId) {    
-            return {...backendComment, body: text};    
-        }
-        return backendComment;
-    });
-    setBackendComments(updatedBackendComments);
-    setActiveComment(null);
-    });
-};
-
-    useEffect(() => {
-    getCommentsApi().then((data) => {
-        setBackendComments(data);
-    });
-        }, []);
-
-    return ( 
-    <div className="comments">
-    <h3 className="comments-title">Kommentit</h3>
-    <div className="comment-form-title">Kirjoita kommentti</div>
-    <CommentForm submitLabel="Kirjoita" handleSubmit={addComment}/>
-    <div className="comments-container">
-{rootComments.map(rootComment => (
-    <Comment
-     key={rootComment.id}
-    comment={rootComment}
-    replies={getReplies(rootComment.id)}
-    currentUserId={currentUserId}
-    deleteComment={deleteComment}
-    activeComment={activeComment}
-    updateComment={updateComment}
-    setActiveComment={setActiveComment}
-    addComment={addComment}
-    />
-))}
-    </div>
-    </div>
-    )
   };
   
-  export default Comments;
+  export default Comment;
