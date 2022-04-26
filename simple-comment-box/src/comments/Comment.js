@@ -39,7 +39,7 @@ const Comment = ({
          {!isEditing && <div className="comment-text">{comment.body}</div>}
          {isEditing && (
            <CommentForm
-            submitLabel="Päivitä"
+            submitLabel="Muokkaa"
             hasCancelButton
             initialText={comment.body}
             handlesubmit={(text) => updateComment(text, comment.id)}
